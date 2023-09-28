@@ -1,0 +1,100 @@
+﻿@using WebMatrix.Data
+
+@{
+    var db = Database.Open("EnvironmentalStatistics");
+    var selectedCityID = Request.QueryString["cityID"];
+
+    var sqlCityData = "SELECT year, annualMean, TemporalCoverage1, annualMeanPM10, annualMean_ugm3, TemporalCoverage2, annualMeanPM25, reference, stationType, number, dbYear FROM Cities AS Cit " +
+                "JOIN AirQualityData AS AQD ON Cit.cityID = AQD.cityID " +
+                "JOIN AirQualityStations AS AQS ON AQD.aqdID = AQS.aqdID " +
+                "JOIN MonitorStationTypes AS MST ON AQS.stationTypeID = MST.stationTypeID " +
+                "WHERE Cit.cityID = @0";
+
+    var sqlCity = "SELECT * FROM Cities AS Cit " +
+        "JOIN Countries AS Cou ON Cit.countryID = Cou.countryID " +
+        "LEFT JOIN Regions AS Reg " +
+        "ON Cou.regionID = Reg.regionID " +
+        "WHERE Cit.cityID = @0";
+
+    var cityData = db.Query(sqlCityData, selectedCityID);
+    var city = db.QuerySingle(sqlCity, selectedCityID);
+
+    var countryRegionName = "Every Country";
+    if (!string.IsNullOrEmpty(selectedCityID) && city != null)
+    {
+        if (city.regionID != null)
+        {
+            countryRegionName = (String.Format("{0}, {1}", city.countryName, city.regionName));
+        }
+        else if (city.countryID != null)
+        {
+            countryRegionName = city.countryName;
+        }
+    }
+}
+
+
+<body>
+    <section id="about" class="about">
+        <div class="container">
+
+            <div class="section-title">
+                <h2>@city.cityName</h2>
+                @if (city.regionId != null)
+                {
+                    <h4>@city.regionName region</h4>
+                }
+                @{
+                    if (!string.IsNullOrEmpty(selectedCityID) && city != null)
+                    {
+                        @countryRegionName;
+                    }
+                }
+                <br />
+                <a href="/Cities/Index?countryID=@city.countryID" class="btn-get-started">Go Back to Cities of @countryRegionName</a>
+            </div>
+
+            <br />
+            <br />
+            <div class="section-title">
+                <h2></h2>
+                <h3>Air Quality Data Table</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            <th>Annual Mean</th>
+                            <th>Temporal Coverage 1</th>
+                            <th>Annual Mean PM10</th>
+                            <th>Annual Mean ugm3</th>
+                            <th>Temporal Coverage 2</th>
+                            <th>Annual Mean PM25</th>
+                            <th>Reference</th>
+                            <th>Monitoring Station Type</th>
+                            <th>Number of Stations</th>
+                            <th>Database Year</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var data in cityData)
+                        {
+                            <tr>
+                                <td>@data.year</td>
+                                <td>@data.annualMean</td>
+                                <td>@data.temporalCoverage1</td>
+                                <td>@data.annualMeanPM10</td>
+                                <td>@data.annualMean_ugm3</td>
+                                <td>@data.temporalCoverage2</td>
+                                <td>@data.annualMeanPM25</td>
+                                <td>@data.reference</td>
+                                <td>@data.stationType</td>
+                                <td>@data.number</td>
+                                <td>@data.dbYear</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</body>

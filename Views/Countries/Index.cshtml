@@ -1,0 +1,111 @@
+﻿@using WebMatrix.Data
+
+@{
+    var db = Database.Open("EnvironmentalStatistics");
+    var selectedRegionID = Request.QueryString["regionID"];
+    var searchCountry = Request.Form["searchCountry"];
+
+    var sqlRegion = "SELECT * FROM Regions WHERE regionID = @0";
+    var region = db.QuerySingle(sqlRegion, selectedRegionID);
+    var regionImage = "/Additional/images/All_Regions.png";
+    var regionName = "Every Region in the World";
+
+    var sqlCountry = "SELECT * FROM Countries AS Cou " +
+        "LEFT JOIN Regions AS Reg " +
+        "ON Cou.regionID = Reg.regionID " +
+        "WHERE countryName LIKE CONCAT(@0, '%') ";
+    if (!string.IsNullOrEmpty(selectedRegionID) && region != null)
+    {
+        sqlCountry += " AND Cou.regionID = @1 ";
+        regionName = region.regionName;
+        regionImage = region.imageUrl;
+    }
+    else
+    {
+        regionImage = "/Additional/images/All_Regions.png";
+        regionName = "Every Region in the World";
+    }
+    sqlCountry += " ORDER BY countryName ASC";
+    var countryList = db.Query(sqlCountry, searchCountry, selectedRegionID);
+}
+
+<body>
+    <!-- ======= Hero Section ======= -->
+    <section id="hero">
+        <div id="heroCarousel" data-bs-interval="5000" class="carousel slide carousel-fade" data-bs-ride="carousel">
+
+            <ol class="carousel-indicators" id="hero-carousel-indicators"></ol>
+
+            <div class="carousel-inner" role="listbox">
+
+                <!-- Slide 1 -->
+                <div class="carousel-item active" style="background-image: url(@regionImage)" alt="Image of map of @regionName">
+                    <div class="carousel-container">
+                        <div class="container">
+                            <h2 class="animate__animated animate__fadeInDown">
+                                @regionName
+                            </h2>
+                            <p class="animate__animated animate__fadeInUp">This page shows all the countries in @regionName.</p>
+                            <a href="/Regions/Index" class="btn-get-started animate__animated animate__fadeInUp scrollto" title="Go back to list of Regions">Go Back to Regions</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Other Slides -->
+                <div class="carousel-item" style="background-image: url(/Additional/assets/img/slide/slide-3.jpg)" alt="Image of buildings from bird's eye view">
+                    <div class="carousel-container">
+                        <div class="container">
+                            <h2 class="animate__animated animate__fadeInDown">All Countries</h2>
+                            <p class="animate__animated animate__fadeInUp">Get detailed environmental data about countries and cities from all over the world..</p>
+                            <a href="/Countries/Index" class="btn-get-started animate__animated animate__fadeInUp scrollto" title="Click this to view all countries from every region.">View All Countries</a>
+                        </div>
+                        <div class="container">
+                            <div class="row justify-content-center">
+                                <form method="post" action="/Countries/Index?regionID=@selectedRegionID">
+                                    <div class="d-flex justify-content-center">
+                                        <div class="col-4">
+                                            <input type="text" name="searchCountry" class="form-control" value="@searchCountry" placeholder="Search Country" />
+                                        </div>
+                                        <span>&nbsp;</span>
+                                        <div class="col-1">
+                                            <button type="submit" class="btn btn-light">Search</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <a class="carousel-control-prev" href="#heroCarousel" role="button" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon bi bi-chevron-left" aria-hidden="true"></span>
+            </a>
+
+            <a class="carousel-control-next" href="#heroCarousel" role="button" data-bs-slide="next">
+                <span class="carousel-control-next-icon bi bi-chevron-right" aria-hidden="true"></span>
+            </a>
+
+        </div>
+    </section><!-- End Hero -->
+
+    <section id="why-us" class="why-us">
+        <div class="container">
+            <div class="row no-gutters justify-content-center">
+                @foreach (var country in countryList)
+                {
+                    <div class="col-lg-4 col-md-6 content-item p-3">
+                        <div class="card">
+                            <h4 class="m-2 text-center">@country.countryName</h4>
+                            <p class="p-1 m-2 text-center">@country.regionName</p>
+                            <div class="row justify-content-center">
+                                <a href="/Countries/Detail?countryID=@country.countryID" target="_blank" class="btn btn-outline-secondary p-1 m-2 col-5 text-center" title="More about this country's Emission and Temperature Data">About</a>
+                                <a href="/Cities/Index?countryID=@country.countryID" target="_blank" class="btn btn-outline-success p-1 m-2 col-5 text-center" title="More about this country's cities">Cities</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+</body>

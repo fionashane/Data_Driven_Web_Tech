@@ -1,0 +1,128 @@
+﻿@using WebMatrix.Data
+
+@{
+    var db = Database.Open("EnvironmentalStatistics");
+    var selectedCountryID = Request.QueryString["countryID"];
+    var searchCity = Request.Form["searchCity"];
+
+    var sqlCountry = "SELECT * FROM Countries WHERE countryID = @0";
+    var country = db.QuerySingle(sqlCountry, selectedCountryID);
+
+    var sqlCity = "SELECT * FROM Cities AS Cit " +
+        "LEFT JOIN Countries AS Cou " +
+        "ON Cit.countryID = Cou.countryID " +
+        "LEFT JOIN Regions AS Reg " +
+        "ON Cou.regionID = Reg.regionID " +
+        "WHERE cityName LIKE CONCAT(@0, '%') ";
+    if (!string.IsNullOrEmpty(selectedCountryID) && country != null)
+    {
+        sqlCity += " AND Cit.countryID = @1 ";
+    }
+    sqlCity += " ORDER BY cityName ASC";
+    var cityList = db.Query(sqlCity, searchCity, selectedCountryID);
+
+    var sqlCountryRegion = "SELECT * FROM Countries AS Cou LEFT JOIN Regions AS Reg ON Cou.regionID = Reg.regionID WHERE countryID = @0";
+    var countryRegion = db.QuerySingle(sqlCountryRegion, selectedCountryID);
+    var countryRegionName = "Every Country";
+    if (!string.IsNullOrEmpty(selectedCountryID) && countryRegion != null)
+    {
+        if (countryRegion.regionID != null)
+        {
+            countryRegionName = (String.Format("{0}, {1}", countryRegion.countryName, countryRegion.regionName));
+        }
+        else if (countryRegion.countryID != null)
+        {
+            countryRegionName = countryRegion.countryName;
+        }
+    }
+}
+
+<body>
+    <!-- ======= Hero Section ======= -->
+    <section id="hero">
+        <div id="heroCarousel" data-bs-interval="5000" class="carousel slide carousel-fade" data-bs-ride="carousel">
+
+            <ol class="carousel-indicators" id="hero-carousel-indicators"></ol>
+
+            <div class="carousel-inner" role="listbox">
+
+                <!-- Slide 1 -->
+                <div class="carousel-item active" style="background-image: url(/Additional/assets/img/slide/slide-2.jpg)" alt="Image of buildings">
+                    <div class="carousel-container">
+                        <div class="container">
+                            <h2 class="animate__animated animate__fadeInDown">@countryRegionName</h2>
+                            <p class="animate__animated animate__fadeInUp">This page shows all the cities in @countryRegionName.</p>
+                            <a href="/Countries/Index?regionID=@countryRegion.regionID" class="btn-get-started animate__animated animate__fadeInUp scrollto" title="Go back to the list of Countries for the same Region">Go Back to Countries</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Other Slides -->
+                <div class="carousel-item" style="background-image: url(/Additional/assets/img/slide/slide-3.jpg)" alt="Image of buildings from bird's eye view">
+                    <div class="carousel-container">
+                        <div class="container">
+                            <h2 class="animate__animated animate__fadeInDown">All Cities</h2>
+                            <p class="animate__animated animate__fadeInUp">Learn more about cities in the world.</p>
+                            <a href="/Cities/Index" class="btn-get-started animate__animated animate__fadeInUp scrollto" title="Click this to view all cities in the world.">View All Cities</a>
+                        </div>
+                        <div class="container">
+                            <div class="row justify-content-center">
+                                <form method="post" action="/Cities/Index?countryID=@selectedCountryID">
+                                    <div class="d-flex justify-content-center">
+                                        <div class="col-4">
+                                            <input type="text" name="searchCity" class="form-control" value="@searchCity" placeholder="Search City" />
+                                        </div>
+                                        <span>&nbsp;</span>
+                                        <div class="col-1">
+                                            <button type="submit" class="btn btn-light">Search</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <a class="carousel-control-prev" href="#heroCarousel" role="button" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon bi bi-chevron-left" aria-hidden="true"></span>
+            </a>
+
+            <a class="carousel-control-next" href="#heroCarousel" role="button" data-bs-slide="next">
+                <span class="carousel-control-next-icon bi bi-chevron-right" aria-hidden="true"></span>
+            </a>
+
+        </div>
+    </section><!-- End Hero -->
+
+    <section id="why-us" class="why-us">
+        <div class="container">
+            <div class="row no-gutters justify-content-center">
+                @foreach (var city in cityList)
+                {
+                    var earliestYear = db.QueryValue("SELECT MIN(year) FROM AirQualityData WHERE cityID = @0", city.cityID);
+                    var latestYear = db.QueryValue("SELECT MAX(year) FROM AirQualityData WHERE cityID = @0", city.cityID);
+                    var numRecords = db.QueryValue("SELECT COUNT(*) FROM AirQualityData WHERE cityID = @0", city.cityID);
+
+                    <div class="col-lg-4 col-md-6 content-item p-3">
+                        <div class="card">
+                            <h4 class="m-3 text-center">@city.cityName</h4>
+                            <h6 class="m-3 text-center">
+                                @{
+                                    if (!string.IsNullOrEmpty(selectedCountryID) && countryRegion != null)
+                                    {
+                                        @countryRegionName;
+                                    }
+                                }
+                            </h6>
+                            <p class="p-1 m-3 text-center">Has @numRecords number of records during years @earliestYear - @latestYear</p>
+                            <div class="row justify-content-center">
+                                <a href="/Cities/Detail?cityID=@city.cityID" target="_blank" class="btn btn-outline-secondary rounded p-1 m-2 col-10 text-center" title="See More detail about this city">See Air Quality Data</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+</body>

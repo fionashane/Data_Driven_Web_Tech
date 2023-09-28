@@ -1,0 +1,130 @@
+﻿@using WebMatrix.Data
+
+@{
+    var db = Database.Open("EnvironmentalStatistics");
+    var selectedCountryID = Request.QueryString["countryID"];
+
+    var sqlEmissionData = "SELECT year, value, Sub.itemName AS subItemName, Par.itemName AS parItemName, elementName, unit " +
+                "FROM Countries AS Cou " +
+                "LEFT JOIN Regions AS Reg " +
+                "ON Cou.regionID = Reg.regionID " +
+                "LEFT JOIN CountryEmissions AS CE " +
+                "ON Cou.countryID = CE.countryID " +
+                "JOIN Elements AS E " +
+                "ON CE.elementID = E.elementID " +
+                "JOIN Items AS Sub " +
+                "ON CE.itemID = Sub.itemID " +
+                "JOIN Items AS Par " +
+                "ON Sub.parentID = Par.itemID " +
+                "WHERE Cou.countryID = @0";
+
+    var sqlCountry = "SELECT * FROM Countries AS Cou " +
+                "LEFT JOIN Regions AS Reg " +
+                "ON Cou.regionID = Reg.regionID " +
+                "WHERE Cou.countryID = @0";
+
+    var sqlTemperatureData = "SELECT year, value, unit, change FROM TemperatureData WHERE countryID = @0";
+
+    var temperatureData = db.Query(sqlTemperatureData, selectedCountryID);
+
+    var emissionData = db.Query(sqlEmissionData, selectedCountryID);
+    var country = db.QuerySingle(sqlCountry, selectedCountryID);
+}
+
+<body>
+    <section id="about" class="about">
+        <div class="container">
+
+            <div class="section-title">
+                <h2>@country.countryName</h2>
+                @if (country.regionId != null)
+                {
+                    <h4>@country.regionName region</h4>
+                }
+                <a href="/Countries/Index?regionID=@country.regionID" class="btn-get-started" title="Go back to the list of Countries for the selected Region">Go Back to Countries</a>
+                <br />
+                <a href="/Cities/Index?countryID=@country.countryID" class="btn-get-started" title="See list of Cities for this country">See Cities</a>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-6 order-1 order-lg-2">
+                    <iframe src="@country.imageUrl" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" alt="Image of map of @country.countryName"></iframe>
+                </div>
+                <div class="col-lg-6 pt-4 pt-lg-0 order-2 order-lg-1 content">
+                    <h3>Welcome to the Environmental Data Page for @country.countryName!</h3>
+                    <p class="fst-italic">
+                        At GREEN, we are committed to providing you with comprehensive and up-to-date environmental statistics for countries around the world.
+                    </p>
+                    <ul>
+                        <li><i class="bi bi-check-circled"></i> On this page, you will find detailed information about the emissions and temperature trends of @country.countryName.</li>
+                        <li><i class="bi bi-check-circled"></i> We aim to offer a valuable resource that helps you understand the environmental impact and climate patterns of this country.</li>
+                    </ul>
+                    <p>
+                        Thank you for choosing GREEN as your source for emission and temperature data. We hope that the statistics presented here will provide you with insights and contribute to your knowledge about the environmental situation in @country.countryName.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section><!-- End About Us Section -->
+
+    <br />
+    <br />
+    <div class="section-title">
+        <h2></h2>
+        <h3>Temperature Data Table</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Year</th>
+                    <th>Temperature Change</th>
+                    <th>Unit</th>
+                    <th>Change</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var data in temperatureData)
+                {
+                    <tr>
+                        <td>@data.year</td>
+                        <td>@data.value</td>
+                        <td>@data.unit</td>
+                        <td>@data.change</td>
+
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <br />
+    <br />
+    <div class="section-title">
+        <h2></h2>
+        <h3>Emissions Data Table</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Year</th>
+                    <th>Item Name</th>
+                    <th>From</th>
+                    <th>Element Name</th>
+                    <th>Value</th>
+                    <th>Element Unit</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var data in emissionData)
+                {
+                    <tr>
+                        <td>@data.year</td>
+                        <td>@data.subItemName</td>
+                        <td>@data.parItemName</td>
+                        <td>@data.elementName</td>
+                        <td>@data.value</td>
+                        <td>@data.unit</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</body>
